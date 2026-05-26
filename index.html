@@ -3,393 +3,508 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora y Registro de Presión Arterial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Calculadora PA Pediátrica y Flujo de acción </title>
     <style>
-        /* Custom styles for a clean, medical look */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background */
+        :root {
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --border: #d1d5db;
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            
+            --diag-normal-bg: #dcfce7; --diag-normal-text: #14532d; --diag-normal-border: #22c55e;
+            --diag-elevada-bg: #dbeafe; --diag-elevada-text: #1e3a8a; --diag-elevada-border: #3b82f6;
+            --diag-etapa1-bg: #ffedd5; --diag-etapa1-text: #7c2d12; --diag-etapa1-border: #f97316;
+            --diag-etapa2-bg: #fee2e2; --diag-etapa2-text: #7f1d1d; --diag-etapa2-border: #ef4444;
         }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e7eb;
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        
+        body { background-color: var(--bg-body); color: var(--text-main); padding: 1rem; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Layout Principal con orden explícito */
+        .dashboard {
+            display: flex;
+            flex-direction: column; 
+            gap: 2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
         }
-        .input-field {
-            transition: all 0.2s;
+
+        .panel-calculadora { order: 1; }
+        .panel-mapa { order: 2; }
+
+        @media (min-width: 1024px) {
+            body { padding: 1.5rem; }
+            .dashboard { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+            /* Se fuerza calculadora a la izquierda (order 1) y mapa a la derecha (order 2) */
+            .panel-calculadora { flex: 0 0 450px; order: 1; }
+            .panel-mapa { flex: 1 1 auto; order: 2; position: sticky; top: 1.5rem; max-width: 800px; }
         }
-        .input-field:focus {
-            border-color: #3b82f6; /* Blue-500 */
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            outline: none;
+
+        /* Tarjetas Base */
+        .card { background: var(--bg-card); padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); margin-bottom: 1.5rem; }
+        @media (min-width: 640px) { .card { padding: 1.5rem; } }
+        .card-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+        .card-subtitle { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+
+        /* Estilos Calculadora */
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        
+        .form-group { display: flex; flex-direction: column; align-items: flex-start; width: 100%; gap: 0.25rem; }
+        .main-label { width: 100%; flex-shrink: 0; font-weight: 600; font-size: 0.875rem; }
+        
+        @media (min-width: 640px) {
+            .form-group { flex-direction: row; align-items: center; gap: 0; }
+            .main-label { width: 8rem; }
         }
         
-        /* Toast notification styling */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #10B981; /* Green-500 */
-            color: #fff;
-            text-align: center;
-            border-radius: 8px;
-            padding: 16px;
-            position: fixed;
-            z-index: 50;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 17px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            opacity: 0;
-            transition: opacity 0.3s, bottom 0.3s;
+        .input-group { display: flex; flex: 1; width: 100%; max-width: 100%; background: #ffffff; border: 1px solid var(--border); border-radius: 0.375rem; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-group:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+        .input-group input { flex: 1 1 0%; min-width: 0; border: none; padding: 0.5rem 0.75rem; outline: none; font-size: 1rem; }
+        .input-group .addon { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border-left: 1px solid var(--border); padding: 0.5rem 0.75rem; color: var(--text-muted); font-size: 0.875rem; min-width: 4rem; font-weight: 500;}
+        
+        .radio-group { display: flex; gap: 1rem; flex: 1; width: 100%; padding-top: 0.25rem; }
+        @media (min-width: 640px) { .radio-group { padding-top: 0; } }
+        .radio-group label { display: flex; align-items: center; font-size: 0.875rem; cursor: pointer; font-weight: 500; }
+        .radio-group input { margin-right: 0.5rem; cursor: pointer; width: 1rem; height: 1rem; accent-color: var(--primary); }
+        
+        .error { background: #fef2f2; border-left: 4px solid var(--diag-etapa2-border); color: var(--diag-etapa2-text); padding: 0.75rem; font-size: 0.875rem; font-weight: 600; margin-top: 1rem; display: none; border-radius: 0.25rem; }
+        
+        .buttons { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        button { padding: 0.625rem 1.5rem; border-radius: 0.375rem; font-weight: 600; cursor: pointer; border: none; font-size: 0.875rem; transition: background 0.2s; }
+        .btn-calc { background: var(--primary); color: white; flex: 1; min-width: 200px; }
+        .btn-calc:hover { background: var(--primary-hover); }
+        .btn-reset { background: white; border: 1px solid var(--border); color: var(--text-main); flex: 0 1 auto; }
+        .btn-reset:hover { background: var(--bg-body); }
+        
+        /* Resultados Calculadora */
+        #results-section { display: none; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 0.375rem; overflow: hidden; }
+        th, td { text-align: left; padding: 0.75rem 0.5rem; font-size: 0.875rem; }
+        @media (min-width: 640px) { th, td { padding: 0.75rem 1rem; } }
+        th { background: #e5e7eb; font-weight: 600; color: var(--text-main); }
+        td { border-bottom: 1px solid var(--border); }
+        tr:nth-child(even) td { background: #f9fafb; }
+        
+        .diag-box { padding: 1rem; border-radius: 0.375rem; border-left: 6px solid; text-align: center; }
+        .diag-title { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; opacity: 0.8; margin-bottom: 0.25rem; display: block; letter-spacing: 0.05em; }
+        .diag-value { font-size: 1.25rem; font-weight: 900; }
+        @media (min-width: 640px) { .diag-value { font-size: 1.5rem; } }
+
+        /* Estilos Dinámicos Diagnóstico */
+        .diag-Normal { background: var(--diag-normal-bg); color: var(--diag-normal-text); border-color: var(--diag-normal-border); }
+        .diag-Elevada { background: var(--diag-elevada-bg); color: var(--diag-elevada-text); border-color: var(--diag-elevada-border); }
+        .diag-Etapa1 { background: var(--diag-etapa1-bg); color: var(--diag-etapa1-text); border-color: var(--diag-etapa1-border); }
+        .diag-Etapa2 { background: var(--diag-etapa2-bg); color: var(--diag-etapa2-text); border-color: var(--diag-etapa2-border); }
+
+        /* Flujograma CSS Puro */
+        .flowchart { display: flex; flex-direction: column; align-items: center; gap: 0; font-size: 0.875rem; width: 100%; padding: 1rem 0; }
+        
+        .flow-node { 
+            background: #fff; border: 2px solid var(--border); border-radius: 0.5rem; 
+            padding: 1rem; width: 100%; max-width: 400px; text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; z-index: 2;
         }
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
+        
+        .flow-node strong { display: block; margin-bottom: 0.25rem; font-size: 0.95rem; }
+        .flow-node ul { text-align: left; margin-top: 0.5rem; padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-muted); }
+        .flow-node li { margin-bottom: 0.25rem; }
+        
+        .flow-arrow { width: 3px; height: 24px; background-color: var(--border); position: relative; z-index: 1; margin: -2px 0; }
+        .flow-arrow::after { content: ''; position: absolute; bottom: -6px; left: -5px; border-width: 7px 6px 0; border-style: solid; border-color: var(--border) transparent transparent transparent; }
+
+        /* Nodos Específicos */
+        .node-urgency { border-color: var(--diag-etapa2-border); background: var(--diag-etapa2-bg); color: var(--diag-etapa2-text); font-weight: 600; }
+        .node-action { border-color: #64748b; background: #f8fafc; }
+        .node-aps { border-color: #eab308; background: #fefce8; }
+        .node-nefro { border-color: #000; background: #fffbeb; font-weight: 700; border-width: 3px; }
+
+        .initial-state-map { text-align: center; padding: 2rem 0; color: var(--text-muted); }
+        .initial-state-map svg { width: 3rem; height: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+        @media (min-width: 640px) { .initial-state-map { padding: 3rem 1rem; } .initial-state-map svg { width: 4rem; height: 4rem; } }
+        
+        /* Footer */
+        .app-footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.875rem; font-weight: 500; border-top: 1px solid var(--border); margin-top: auto; width: 100%; max-width: 1280px; margin-inline: auto; }
     </style>
 </head>
-<body class="text-gray-800 p-4 md:p-8 min-h-screen">
+<body>
 
-    <div class="max-w-7xl mx-auto space-y-6">
-        
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-blue-800 mb-2">
-                <i class="fa-solid fa-heart-pulse mr-2"></i>Herramienta Clínica: Presión Arterial
-            </h1>
-            <p class="text-gray-600">Calculadora de promedios, guía técnica y registro para ficha clínica.</p>
-        </header>
+<div class="dashboard">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <main class="panel-calculadora">
+        <div class="card">
+            <h2 class="card-title">Calculadora de Presión Arterial</h2>
+            <p class="card-subtitle">Según percentiles MINSAL de 1 a 9 años</p>
             
-            <!-- COLUMN 1 & 2: Calculator and Record -->
-            <div class="lg:col-span-2 space-y-6">
-                
-                <!-- Calculator Section -->
-                <section class="glass-panel p-6">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">
-                        Calculadora de Promedios
-                    </h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse" id="bpTable">
-                            <thead>
-                                <tr class="bg-gray-100 border-b-2 border-gray-200">
-                                    <th class="p-3 font-semibold text-gray-700 w-24 text-center">TOMA #</th>
-                                    <th class="p-3 font-semibold text-gray-700 text-center">PRESIÓN SISTÓLICA (mmHg)</th>
-                                    <th class="p-3 font-semibold text-gray-700 text-center">PRESIÓN DIASTÓLICA (mmHg)</th>
-                                    <th class="p-3 w-12"></th> <!-- Column for delete button -->
-                                </tr>
-                            </thead>
-                            <tbody id="readingsBody">
-                                <!-- Rows will be added here by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-4 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-                        <button onclick="addReadingRow()" class="text-blue-600 font-medium hover:text-blue-800 transition flex items-center">
-                            <i class="fa-solid fa-plus-circle mr-2"></i> Añadir Toma
-                        </button>
-                        
-                        <div class="flex space-x-3">
-                            <button onclick="clearCalculator()" class="px-4 py-2 border border-purple-600 text-purple-600 rounded hover:bg-purple-50 transition">
-                                Limpiar / Reiniciar
-                            </button>
-                            <button onclick="calculateAverage()" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded hover:bg-gray-300 transition border border-gray-400 shadow-sm">
-                                Calcular
-                            </button>
+            <form id="bp-form" onsubmit="event.preventDefault(); calculate();">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="main-label">Sexo</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="sex" value="female" checked> Mujer</label>
+                            <label><input type="radio" name="sex" value="male"> Hombre</label>
                         </div>
                     </div>
 
-                    <!-- Results Area -->
-                    <div id="resultsArea" class="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg hidden">
-                        <h3 class="text-lg font-semibold text-blue-800 mb-2 text-center">Promedio Calculado</h3>
-                        <div class="flex justify-center items-center space-x-8">
-                            <div class="text-center">
-                                <span class="block text-sm text-gray-500">Sistólica</span>
-                                <span id="avgSys" class="text-3xl font-bold text-gray-800">--</span>
-                            </div>
-                            <div class="text-4xl text-gray-400">/</div>
-                            <div class="text-center">
-                                <span class="block text-sm text-gray-500">Diastólica</span>
-                                <span id="avgDia" class="text-3xl font-bold text-gray-800">--</span>
-                            </div>
-                        </div>
-                        <p id="calcMessage" class="text-center text-sm mt-3 text-gray-600"></p>
-                    </div>
-                </section>
-
-                <!-- Clinical Record Section -->
-                <section class="glass-panel p-6">
-                    <div class="flex justify-between items-center mb-4 border-b pb-2">
-                        <h2 class="text-2xl font-semibold text-gray-800">
-                            Registro para Ficha Clínica
-                        </h2>
-                        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                            Actividad: Toma de presión arterial
-                        </span>
-                    </div>
-                    
-                    <div class="relative">
-                        <textarea id="clinicalRecord" rows="18" class="w-full p-4 border border-gray-300 rounded-lg input-field font-mono text-sm resize-y" placeholder="Cargando plantilla...">Perfil/Cedazo de Presión Arterial.
-
-Antecedentes
-• Antecedentes médicos: 
-• Fármacos: 
-• Alergias: 
-• ¿Quién deriva a perfil/cedazo de presión?: 
-
-Día 1:
-Brazo derecho (BD): 
-Brazo izquierdo (BI): 
-1. PAS/PAD: 
-2. PAS/PAD: 
-Promedio día 1: 
-
-Día 2:
-Acude a segundo perfil seriado de presión.
-1. PAS/PAD: 
-2. PAS/PAD: 
-Promedio día 2: 
-
-Día 3
-1. PAS/PAD: 
-2. PAS/PAD: 
-Promedio día 3: 
-
-PROMEDIO FINAL: </textarea>
-                        
-                        <button onclick="copyToClipboard()" class="absolute top-4 right-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 p-2 rounded shadow-sm transition" title="Copiar al portapapeles">
-                            <i class="fa-regular fa-copy"></i> Copiar
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Edite el texto directamente en el cuadro antes de copiarlo si es necesario.</p>
-                </section>
-
-            </div>
-
-            <!-- COLUMN 3: Guidelines Sidebar -->
-            <div class="space-y-6">
-                <aside class="glass-panel p-6 sticky top-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2 text-center">
-                        Técnica Correcta
-                    </h2>
-                    
-                    <div class="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
-                        <div class="flex items-start">
-                            <i class="fa-solid fa-triangle-exclamation text-red-500 mt-1 mr-3"></i>
-                            <p class="text-sm text-red-800 font-medium">
-                                Siempre que estén disponibles, utilizar dispositivos automáticos validados para el brazo.
-                            </p>
+                    <div class="form-group">
+                        <label class="main-label">Edad</label>
+                        <div class="input-group">
+                            <input type="number" id="age" min="1" max="9" placeholder="1 a 9" required>
+                            <span class="addon">años</span>
                         </div>
                     </div>
 
-                    <ul class="space-y-4 text-sm text-gray-700">
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">1</span>
-                            <span><strong>No conversar.</strong> Mantener silencio durante la medición.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">2</span>
-                            <span><strong>Apoyar el brazo.</strong> A la altura del corazón, sobre una superficie.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">3</span>
-                            <span><strong>Colocar el brazalete.</strong> En el brazo sin ropa, ajustado adecuadamente.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">4</span>
-                            <span><strong>Tamaño adecuado.</strong> Usar el tamaño de brazalete correspondiente al brazo.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">5</span>
-                            <span><strong>Apoyar la espalda.</strong> Sentarse con la espalda recostada en la silla.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">6</span>
-                            <span><strong>Vejiga vacía.</strong> Haber ido al baño antes de la medición.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">7</span>
-                            <span><strong>No cruzar las piernas.</strong> Mantener ambas piernas sin cruzar.</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs mr-3">9</span> <!-- Note: The original image skips 8 -->
-                            <span><strong>Apoyar los pies.</strong> Ambos pies deben estar planos sobre el suelo.</span>
-                        </li>
-                    </ul>
-                </aside>
-            </div>
+                    <div class="form-group">
+                        <label class="main-label">Talla</label>
+                        <div class="input-group">
+                            <input type="number" id="height" step="0.1" required>
+                            <span class="addon">cm</span>
+                        </div>
+                    </div>
 
+                    <div class="form-group">
+                        <label class="main-label">PA Sistólica</label>
+                        <div class="input-group">
+                            <input type="number" id="sysBP" required>
+                            <span class="addon">mmHg</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="main-label">PA Diastólica</label>
+                        <div class="input-group">
+                            <input type="number" id="diaBP" required>
+                            <span class="addon">mmHg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="error-msg" class="error"></div>
+
+                <div class="buttons">
+                    <button type="submit" class="btn-calc">Calcular</button>
+                    <button type="button" class="btn-reset" onclick="resetForm()">Borrar</button>
+                </div>
+            </form>
         </div>
-    </div>
 
-    <!-- Toast Notification -->
-    <div id="toast">¡Texto copiado al portapapeles!</div>
+        <div class="card" id="results-section">
+            <h3 class="card-title" style="font-size: 1.1rem; margin-bottom: 1rem;">Parámetros del Paciente</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Variable</th>
+                        <th style="width: 50%;">Clasificación / Rango</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 500;" id="out-sys-val"></td>
+                        <td style="font-weight: 600;" id="out-sys-lbl"></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 500;" id="out-dia-val"></td>
+                        <td style="font-weight: 600;" id="out-dia-lbl"></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--text-muted);">Pct. Sistólica</td>
+                        <td style="font-family: monospace;" id="out-sys-pct"></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--text-muted);">Pct. Diastólica</td>
+                        <td style="font-family: monospace;" id="out-dia-pct"></td>
+                    </tr>
+                </tbody>
+            </table>
 
-    <script>
-        let rowCount = 0;
-        const MIN_ROWS = 2; // Default starting rows
+            <div id="diag-container" class="diag-box diag-Normal">
+                <span class="diag-title">Diagnóstico</span>
+                <span class="diag-value" id="out-overall-lbl">Normal</span>
+            </div>
+        </div>
+    </main>
 
-        // Initialize table
-        window.onload = () => {
-            for (let i = 0; i < MIN_ROWS; i++) {
-                addReadingRow();
-            }
-        };
+    <aside class="panel-mapa">
+        <div class="card" style="height: 100%;">
+            <h2 class="card-title">Flujograma de Acción</h2>
+            <p class="card-subtitle">Conducta a seguir en Control de Salud / Morbilidad según resultado</p>
+            
+            <div id="flowchart-container">
+                <div class="initial-state-map">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    <p><strong>Ingrese los datos y calcule la PA</strong></p>
+                    <p style="font-size: 0.875rem;">El algoritmo trazará automáticamente la conducta clínica (plazos de confirmación, manejo de APS y criterios de derivación) basado en el protocolo comunal de HTA (El Bosque).</p>
+                </div>
+            </div>
+        </div>
+    </aside>
 
-        function addReadingRow() {
-            rowCount++;
-            const tbody = document.getElementById('readingsBody');
-            const tr = document.createElement('tr');
-            tr.className = 'border-b border-gray-100 hover:bg-gray-50';
-            tr.id = `row-${rowCount}`;
+</div>
 
-            tr.innerHTML = `
-                <td class="p-2 text-center font-medium text-gray-600">${rowCount}</td>
-                <td class="p-2">
-                    <input type="number" min="0" max="300" class="sys-input w-full p-2 border border-gray-300 rounded input-field text-center" placeholder="Ej: 120">
-                </td>
-                <td class="p-2">
-                    <input type="number" min="0" max="200" class="dia-input w-full p-2 border border-gray-300 rounded input-field text-center" placeholder="Ej: 80">
-                </td>
-                <td class="p-2 text-center">
-                    ${rowCount > MIN_ROWS ? `<button onclick="removeRow(${rowCount})" class="text-red-400 hover:text-red-600 transition" title="Eliminar fila"><i class="fa-solid fa-trash"></i></button>` : ''}
-                </td>
+<footer class="app-footer">
+    Hecho por Ricardo Muñoz R.
+</footer>
+
+<script>
+// Base de datos MINSAL 2021 / AAP 2017
+const bpData = {
+  female: {
+    1: { h: [75.4, 76.6, 78.6, 80.8, 83.0, 84.9, 86.1], sys: [[98, 99, 99, 100, 101, 102, 102], [101, 102, 102, 103, 104, 105, 105], [113, 114, 114, 115, 116, 117, 117]], dia: [[54, 55, 56, 56, 57, 58, 58], [59, 59, 60, 60, 61, 62, 62], [71, 71, 72, 72, 73, 74, 74]] },
+    2: { h: [84.9, 86.3, 88.6, 91.1, 93.7, 96.0, 97.4], sys: [[101, 101, 102, 103, 104, 105, 106], [104, 105, 106, 106, 107, 108, 109], [116, 117, 118, 118, 119, 120, 121]], dia: [[58, 58, 59, 60, 61, 62, 62], [62, 63, 63, 64, 65, 66, 66], [74, 75, 75, 76, 77, 78, 78]] },
+    3: { h: [91.0, 92.4, 94.9, 97.6, 100.5, 103.1, 104.6], sys: [[102, 103, 104, 104, 105, 106, 107], [106, 106, 107, 108, 109, 110, 110], [118, 118, 119, 120, 121, 122, 122]], dia: [[60, 61, 61, 62, 63, 64, 65], [64, 65, 65, 66, 67, 68, 69], [76, 77, 77, 78, 79, 80, 81]] },
+    4: { h: [97.2, 98.8, 101.4, 104.5, 107.6, 110.5, 112.2], sys: [[103, 104, 105, 106, 107, 108, 108], [107, 108, 109, 109, 110, 111, 112], [119, 120, 121, 121, 122, 123, 124]], dia: [[62, 63, 64, 65, 66, 67, 67], [66, 67, 68, 69, 70, 70, 71], [78, 79, 80, 81, 82, 82, 83]] },
+    5: { h: [103.6, 105.3, 108.2, 111.5, 114.9, 118.1, 120.0], sys: [[104, 105, 106, 107, 108, 109, 110], [108, 109, 109, 110, 111, 112, 113], [120, 121, 121, 122, 123, 124, 125]], dia: [[64, 65, 66, 67, 68, 69, 70], [68, 69, 70, 71, 72, 73, 73], [80, 81, 82, 83, 84, 85, 85]] },
+    6: { h: [110.0, 111.8, 114.9, 118.4, 122.1, 125.6, 127.7], sys: [[105, 106, 107, 108, 109, 110, 111], [109, 109, 110, 111, 112, 113, 114], [121, 121, 122, 123, 124, 125, 126]], dia: [[67, 67, 68, 69, 70, 71, 71], [70, 71, 72, 72, 73, 74, 74], [82, 83, 84, 84, 85, 86, 86]] },
+    7: { h: [115.9, 117.8, 121.1, 124.9, 128.8, 132.5, 134.7], sys: [[106, 106, 107, 109, 110, 111, 112], [109, 110, 111, 112, 113, 114, 115], [121, 122, 123, 124, 125, 126, 127]], dia: [[68, 68, 70, 69, 71, 72, 72], [72, 72, 73, 73, 74, 74, 75], [84, 84, 85, 85, 86, 86, 87]] },
+    8: { h: [121.0, 123.0, 126.5, 130.6, 134.7, 138.5, 140.9], sys: [[107, 107, 108, 110, 111, 112, 113], [110, 111, 112, 113, 115, 116, 117], [122, 123, 124, 125, 127, 128, 129]], dia: [[69, 70, 72, 71, 72, 73, 73], [72, 73, 74, 74, 75, 75, 75], [84, 85, 86, 86, 87, 87, 87]] },
+    9: { h: [125.3, 127.6, 131.3, 135.6, 140.1, 144.1, 146.6], sys: [[108, 108, 109, 111, 112, 113, 114], [112, 112, 113, 114, 116, 117, 118], [124, 124, 125, 126, 128, 129, 130]], dia: [[71, 71, 73, 72, 73, 73, 73], [74, 74, 75, 75, 75, 75, 75], [86, 86, 87, 87, 87, 87, 87]] }
+  },
+  male: {
+    1: { h: [77.2, 78.3, 80.2, 82.4, 84.6, 86.7, 87.9], sys: [[98, 99, 99, 100, 100, 101, 101], [102, 102, 103, 103, 104, 105, 105], [114, 114, 115, 115, 116, 117, 117]], dia: [[52, 52, 53, 53, 54, 54, 54], [54, 54, 55, 55, 56, 57, 57], [66, 66, 67, 67, 68, 69, 69]] },
+    2: { h: [86.1, 87.4, 89.6, 92.1, 94.7, 97.1, 98.5], sys: [[100, 100, 101, 102, 103, 103, 104], [104, 105, 105, 106, 107, 107, 108], [116, 117, 117, 118, 119, 119, 120]], dia: [[55, 55, 56, 56, 57, 58, 58], [57, 58, 58, 59, 60, 61, 61], [69, 70, 70, 71, 72, 73, 73]] },
+    3: { h: [92.5, 93.9, 96.3, 99.0, 101.8, 104.3, 105.8], sys: [[101, 102, 102, 103, 104, 105, 105], [106, 106, 107, 107, 108, 109, 109], [118, 118, 119, 119, 120, 121, 121]], dia: [[58, 58, 59, 59, 60, 61, 61], [60, 61, 61, 62, 63, 64, 64], [72, 73, 73, 74, 75, 76, 76]] },
+    4: { h: [98.5, 100.2, 102.9, 105.9, 108.9, 111.5, 113.2], sys: [[102, 103, 104, 105, 105, 106, 107], [107, 107, 108, 108, 109, 110, 110], [119, 119, 120, 120, 121, 122, 122]], dia: [[60, 61, 62, 62, 63, 64, 64], [63, 64, 65, 66, 67, 67, 68], [75, 76, 77, 78, 79, 79, 80]] },
+    5: { h: [104.4, 106.2, 109.1, 112.4, 115.7, 118.6, 120.3], sys: [[103, 104, 105, 106, 107, 108, 108], [107, 108, 109, 109, 110, 111, 112], [119, 120, 121, 121, 122, 123, 124]], dia: [[63, 64, 65, 65, 66, 67, 67], [66, 67, 68, 69, 70, 70, 71], [78, 79, 80, 81, 82, 82, 83]] },
+    6: { h: [110.3, 112.2, 115.3, 118.9, 122.4, 125.6, 127.5], sys: [[105, 105, 106, 107, 109, 110, 110], [108, 109, 110, 111, 112, 113, 114], [120, 121, 122, 123, 124, 125, 126]], dia: [[66, 66, 67, 68, 68, 69, 69], [69, 70, 70, 71, 72, 72, 73], [81, 82, 82, 84, 84, 85, 85]] },
+    7: { h: [116.1, 118.0, 121.4, 125.1, 128.9, 132.4, 134.5], sys: [[106, 107, 108, 109, 110, 111, 111], [110, 110, 111, 112, 114, 115, 116], [122, 122, 123, 124, 126, 127, 128]], dia: [[68, 68, 70, 69, 71, 71, 71], [71, 71, 73, 72, 74, 74, 74], [83, 83, 85, 84, 86, 86, 86]] },
+    8: { h: [121.4, 123.5, 127.0, 131.0, 135.1, 138.8, 141.0], sys: [[107, 108, 109, 110, 111, 112, 112], [111, 112, 112, 114, 115, 116, 117], [123, 124, 124, 126, 127, 128, 129]], dia: [[69, 70, 70, 71, 72, 72, 73], [72, 73, 74, 73, 75, 75, 75], [84, 85, 86, 85, 87, 87, 87]] },
+    9: { h: [126.0, 128.3, 132.1, 136.3, 140.7, 144.7, 147.1], sys: [[107, 108, 109, 110, 112, 113, 114], [112, 112, 113, 115, 116, 118, 119], [124, 124, 125, 127, 128, 130, 131]], dia: [[70, 71, 73, 72, 74, 74, 74], [74, 74, 76, 75, 76, 77, 77], [86, 86, 88, 87, 88, 89, 89]] }
+  }
+};
+
+function getClassification(bp, thresholds) {
+    const [p90, p95, p95_12] = thresholds;
+    if (bp < p90) return { label: 'Normal', cssKey: 'Normal', pct: '< p90' };
+    if (bp >= p90 && bp < p95) return { label: 'PA Elevada', cssKey: 'Elevada', pct: '≥ p90 a < p95' };
+    if (bp >= p95 && bp < p95_12) return { label: 'HTA Etapa I', cssKey: 'Etapa1', pct: '≥ p95 hasta < p95+12 mmHg' };
+    return { label: 'HTA Etapa II', cssKey: 'Etapa2', pct: '≥ p95+12 mmHg' };
+}
+
+function getSeverity(cssKey) {
+    const map = { 'Normal': 0, 'Elevada': 1, 'Etapa1': 2, 'Etapa2': 3 };
+    return map[cssKey] || 0;
+}
+
+function clearError() {
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('error-msg').innerText = '';
+}
+
+function showError(msg) {
+    const errorEl = document.getElementById('error-msg');
+    errorEl.innerText = msg;
+    errorEl.style.display = 'block';
+}
+
+function resetForm() {
+    document.getElementById('bp-form').reset();
+    document.getElementById('results-section').style.display = 'none';
+    
+    document.getElementById('flowchart-container').innerHTML = `
+        <div class="initial-state-map">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            <p><strong>Ingrese los datos y calcule la PA</strong></p>
+            <p style="font-size: 0.875rem;">El algoritmo trazará automáticamente la conducta clínica (plazos de confirmación, manejo de APS y criterios de derivación) basada en el Anexo 16/17.</p>
+        </div>
+    `;
+    clearError();
+}
+
+function renderFlowchart(diagnosis) {
+    const container = document.getElementById('flowchart-container');
+    let html = '<div class="flowchart">';
+    
+    html += `
+        <div class="flow-node diag-${diagnosis.cssKey}">
+            <strong>${diagnosis.label}</strong>
+            <span>${diagnosis.pct}</span>
+        </div>
+    `;
+
+    if (diagnosis.cssKey === 'Normal') {
+        html += `
+            <div class="flow-arrow"></div>
+            <div class="flow-node node-action">
+                <strong>🥗 Recomendaciones de Estilo de Vida Saludable</strong>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node" style="border-color: var(--diag-normal-border);">
+                <strong>✅ Continuar controles habituales</strong>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="flow-arrow"></div>
+            <div class="flow-node node-action">
+                <strong>⏱️ Confirmación por Enfermería < 48 horas</strong>
+                <ul>
+                    <li>Esperar 3 minutos reposo.</li>
+                    <li>Toma de PA en Brazo Derecho.</li>
+                    <li>Esperar 3 minutos adicionales.</li>
+                    <li>2° Toma de PA en Brazo Derecho.</li>
+                    <li><strong>Promediar ambas tomas y reclasificar.</strong></li>
+                </ul>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node diag-${diagnosis.cssKey}">
+                <strong>Si persiste como: ${diagnosis.label} (Asintomático)</strong>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node node-action">
+                <strong>🥗 Iniciar Cambios Estilo de Vida Saludable</strong>
+                <ul>
+                    <li>Alimentación y Actividad física.</li>
+                    <li>Manejo de sobrepeso u obesidad.</li>
+                    <li>Derivar a nutricionista si procede.</li>
+                </ul>
+            </div>
+        `;
+
+        if (diagnosis.cssKey === 'Elevada') {
+            html += `
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-aps">
+                    <strong>1° Control Médico APS (a los 6 meses)</strong>
+                    <ul>
+                        <li>Medición PA en extremidades superiores y 1 inferior.</li>
+                        <li>Reforzar estilo de vida.</li>
+                    </ul>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-aps">
+                    <strong>2° Control Médico APS (a los 6 meses)</strong>
+                    <span>Si persiste PA Elevada en 1° control</span>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-nefro">
+                    <strong>Derivación a Nefrología</strong>
+                    <span>Si persiste PA Elevada en 2° control</span>
+                </div>
             `;
-            tbody.appendChild(tr);
-            updateRowNumbers();
+        } else if (diagnosis.cssKey === 'Etapa1') {
+            html += `
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-aps">
+                    <strong>1° Control Médico APS (a las 2 semanas)</strong>
+                    <ul>
+                        <li>Medición PA extremidades superiores y 1 inferior.</li>
+                    </ul>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-aps">
+                    <strong>2° Control Médico APS (a los 3 meses)</strong>
+                    <span>Si persiste Etapa I</span>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-nefro">
+                    <strong>Derivación a Nefrología</strong>
+                    <span>Si persiste Etapa I en 2° control</span>
+                </div>
+                <div style="margin-top: 1.5rem; width: 100%; max-width: 400px;" class="flow-node node-urgency">
+                    ⚠️ SI SE ENCUENTRA SINTOMÁTICO<br>
+                    <span style="font-size: 0.8rem; font-weight: 400;">(Cefalea, tinnitus, epistaxis, taquicardia o vómitos)</span><br>
+                    <strong>Derivación a médico de turno de urgencia</strong>
+                </div>
+            `;
+        } else if (diagnosis.cssKey === 'Etapa2') {
+            html += `
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-aps">
+                    <strong>Control Médico APS (a la 1 semana)</strong>
+                    <ul>
+                        <li>Medición PA extremidades superiores y 1 inferior.</li>
+                        <li>Verificar control nutricionista.</li>
+                    </ul>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node node-nefro">
+                    <strong>Derivación a Nefrología</strong>
+                    <span>Si persiste Etapa II en control semanal</span>
+                </div>
+                <div style="margin-top: 1.5rem; width: 100%; max-width: 400px;" class="flow-node node-urgency">
+                    ⚠️ SI SE ENCUENTRA SINTOMÁTICO<br>
+                    <span style="font-size: 0.8rem; font-weight: 400;">(Cefalea, tinnitus, epistaxis, taquicardia o vómitos)</span><br>
+                    <strong>Derivación a médico de turno de urgencia</strong>
+                </div>
+            `;
         }
+    }
 
-        function removeRow(id) {
-            const row = document.getElementById(`row-${id}`);
-            if (row) {
-                row.remove();
-                updateRowNumbers();
-                // Optionally recalculate if results are visible
-                if(!document.getElementById('resultsArea').classList.contains('hidden')){
-                    calculateAverage();
-                }
-            }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function calculate() {
+    clearError();
+
+    const sex = document.querySelector('input[name="sex"]:checked').value;
+    const ageNum = parseInt(document.getElementById('age').value);
+    const heightNum = parseFloat(document.getElementById('height').value);
+    const sysNum = parseInt(document.getElementById('sysBP').value);
+    const diaNum = parseInt(document.getElementById('diaBP').value);
+
+    if (isNaN(ageNum) || isNaN(heightNum) || isNaN(sysNum) || isNaN(diaNum)) {
+        showError('Por favor complete todos los campos numéricos requeridos.');
+        return;
+    }
+
+    if (ageNum < 1 || ageNum > 9) {
+        showError('La tabla MINSAL 2021 proporciona datos estandarizados únicamente entre 1 y 9 años de edad.');
+        return;
+    }
+
+    const ageData = bpData[sex][ageNum];
+    
+    let closestIndex = 0;
+    let minDiff = Math.abs(ageData.h[0] - heightNum);
+    for (let i = 1; i < ageData.h.length; i++) {
+        const diff = Math.abs(ageData.h[i] - heightNum);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIndex = i;
         }
+    }
 
-        function updateRowNumbers() {
-            const rows = document.querySelectorAll('#readingsBody tr');
-            rowCount = 0;
-            rows.forEach((row, index) => {
-                rowCount++;
-                row.id = `row-${rowCount}`;
-                row.cells[0].textContent = rowCount;
-                // Update delete button logic to ensure first 2 rows can't be deleted easily via UI
-                if(rowCount <= MIN_ROWS) {
-                    row.cells[3].innerHTML = '';
-                } else {
-                    row.cells[3].innerHTML = `<button onclick="removeRow(${rowCount})" class="text-red-400 hover:text-red-600 transition" title="Eliminar fila"><i class="fa-solid fa-trash"></i></button>`;
-                }
-            });
-        }
+    const sysThresholds = [ageData.sys[0][closestIndex], ageData.sys[1][closestIndex], ageData.sys[2][closestIndex]];
+    const diaThresholds = [ageData.dia[0][closestIndex], ageData.dia[1][closestIndex], ageData.dia[2][closestIndex]];
 
-        function clearCalculator() {
-            const tbody = document.getElementById('readingsBody');
-            tbody.innerHTML = '';
-            rowCount = 0;
-            for (let i = 0; i < MIN_ROWS; i++) {
-                addReadingRow();
-            }
-            document.getElementById('resultsArea').classList.add('hidden');
-        }
+    const sysResult = getClassification(sysNum, sysThresholds);
+    const diaResult = getClassification(diaNum, diaThresholds);
 
-        function calculateAverage() {
-            const sysInputs = document.querySelectorAll('.sys-input');
-            const diaInputs = document.querySelectorAll('.dia-input');
-            
-            let sysSum = 0;
-            let diaSum = 0;
-            let validReadings = 0;
+    let overallDiagnosis = sysResult;
+    if (getSeverity(diaResult.cssKey) > getSeverity(sysResult.cssKey)) {
+        overallDiagnosis = diaResult;
+    }
 
-            for (let i = 0; i < sysInputs.length; i++) {
-                const sysVal = parseInt(sysInputs[i].value);
-                const diaVal = parseInt(diaInputs[i].value);
+    document.getElementById('out-sys-val').innerText = `PA Sistólica = ${sysNum} mmHg`;
+    document.getElementById('out-sys-lbl').innerText = sysResult.label;
+    document.getElementById('out-sys-pct').innerText = sysResult.pct;
 
-                if (!isNaN(sysVal) && !isNaN(diaVal)) {
-                    sysSum += sysVal;
-                    diaSum += diaVal;
-                    validReadings++;
-                }
-            }
+    document.getElementById('out-dia-val').innerText = `PA Diastólica = ${diaNum} mmHg`;
+    document.getElementById('out-dia-lbl').innerText = diaResult.label;
+    document.getElementById('out-dia-pct').innerText = diaResult.pct;
 
-            const resultsArea = document.getElementById('resultsArea');
-            const msgArea = document.getElementById('calcMessage');
+    const diagContainer = document.getElementById('diag-container');
+    diagContainer.className = `diag-box diag-${overallDiagnosis.cssKey}`;
+    document.getElementById('out-overall-lbl').innerText = overallDiagnosis.label;
 
-            if (validReadings === 0) {
-                // Use a simple custom modal or styled alert equivalent instead of native alert
-                showToast("Por favor, ingrese al menos una lectura válida.", true);
-                resultsArea.classList.add('hidden');
-                return;
-            }
+    document.getElementById('results-section').style.display = 'block';
 
-            const avgSys = Math.round(sysSum / validReadings);
-            const avgDia = Math.round(diaSum / validReadings);
+    renderFlowchart(overallDiagnosis);
+}
 
-            document.getElementById('avgSys').textContent = avgSys;
-            document.getElementById('avgDia').textContent = avgDia;
-            
-            msgArea.textContent = `Promedio basado en ${validReadings} toma(s) válida(s).`;
-            
-            resultsArea.classList.remove('hidden');
-            
-            // Optional: Auto-fill the clinical record if it's currently empty or contains placeholders
-            // This is a basic implementation, can be refined based on specific needs
-            updateRecordWithAverage(avgSys, avgDia);
-        }
-        
-        function updateRecordWithAverage(sys, dia) {
-            // Very simple auto-fill logic. In a real app, you might want to parse 
-            // the text area or use specific input fields for the record.
-            // For now, we leave the text area manual as requested, but we could 
-            // append the final average if needed.
-        }
+document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', clearError);
+});
+</script>
 
-        function copyToClipboard() {
-            const textarea = document.getElementById('clinicalRecord');
-            
-            // Select the text
-            textarea.select();
-            textarea.setSelectionRange(0, 99999); // For mobile devices
-            
-            try {
-                // Execute copy command
-                document.execCommand('copy');
-                // Deselect
-                window.getSelection().removeAllRanges();
-                
-                showToast("¡Registro copiado al portapapeles!");
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-                showToast("Error al copiar. Por favor, seleccione y copie manualmente.", true);
-            }
-        }
-
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            
-            if (isError) {
-                toast.style.backgroundColor = '#EF4444'; // Red-500
-            } else {
-                toast.style.backgroundColor = '#10B981'; // Green-500
-            }
-
-            toast.className = 'show';
-            setTimeout(function(){ 
-                toast.className = toast.className.replace("show", ""); 
-            }, 3000);
-        }
-    </script>
 </body>
 </html>
